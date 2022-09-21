@@ -1,11 +1,11 @@
-from intaller import check_CPUsum, get_CPUsum
+import intaller
 
 
 if __name__ == "__main__":
-    is_have_license = check_CPUsum(get_CPUsum())
+	license = intaller.License("license.key")
 
-    if is_have_license:
-        print("Cool! You have a license!")
-    else:
-        print("Sorry, access is denied!")
+	if license.check_CPUsum():
+		print("Cool! You have a license!")
+	else:
+		print("Sorry, access is denied!")
 
