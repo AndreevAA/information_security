@@ -416,7 +416,7 @@ def main():
                 for i in range(empty_spaces - 1):
                     temp.append(0)
                 temp.append(1)
-                decrypted_part = encrypt(temp, key)
+                decrypted_part = decrypt(temp, key)
                 decrypted_data.extend(decrypted_part)
 
         out_path = os.path.join(os.path.dirname(input_path), os.path.basename(input_path).split('.')[0] + ".decoded")
