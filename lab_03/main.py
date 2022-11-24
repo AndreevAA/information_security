@@ -65,10 +65,13 @@ def encrypt(input_bytes, key):
         for c in range(nb):
             state[r].append(input_bytes[r + 4 * c])
 
+    # Выполняю расширение ключа до 44 на 4 в моем случае исп. sbox, rcon и входной ключ key 
     key_schedule = key_expansion(key)
 
+    # Добавляю раундовый ключ
     state = add_round_key(state, key_schedule)
 
+    # Выполняю операцию 9 раз 1 - 9 вкл.
     for rnd in range(1, nr):
         state = sub_bytes(state)
         state = shift_rows(state)
@@ -212,46 +215,67 @@ def key_expansion(key):
     """It makes list of RoundKeys for function AddRoundKey. All details
     about algorithm is in AES standard
     """
-
+    # Создаю массив позиций символов в Unicode 
     key_symbols = [ord(symbol) for symbol in key]
 
     # CipherKey should contain 16 symbols to fill 4*4 table. If it's less
     # complement the key with "0x01"
+    # Дозаполняю единичками те ячейки массива 4 по 4, которые оказались пусты
     if len(key_symbols) < 4 * nk:
         for i in range(4 * nk - len(key_symbols)):
             key_symbols.append(0x01)
 
     # make CipherKey(which is base of KeySchedule)
+    # создаю пустую матрицу 4 на 1
     key_schedule = [[] for i in range(4)]
+    # заполняю созданную матрицу элементами
+    # на каждом шаге расширяю r-ый элемент значением из созданной 4х4 таблицы 
     for r in range(4):
         for c in range(nk):
             key_schedule[r].append(key_symbols[r + 4 * c])
-
+    
+    print("key_schedule", key_schedule)
+    
     # Continue to fill KeySchedule
+    # Продолжаю заполнять ключ, оставляя 4 строки и расширяя до 44 элементов (nb * (n + 1))
+    # Пробегаюсь от 4-го столбца (еще не тронутый ранее) до 15-
     for col in range(nk, nb * (nr + 1)):  # col - column number
         if col % nk == 0:
+            print("SHIFTING")
             # take shifted (col - 1)th column...
+            # получаю все элементы последнего заполненного столбца, а именно (col - 1)
+            # этот темповый столбец будет новым столбцом для нашей матрицы
             tmp = [key_schedule[row][col - 1] for row in range(1, 4)]
             tmp.append(key_schedule[0][col - 1])
 
             # change its elements using Sbox-table like in SubBytes...
+            # Меняю в этом стобцем элементы, испольльзуя наш s-box
             for j in range(len(tmp)):
+                # Нахожу значение по целому значению деления на 16 для строки в sbox
                 sbox_row = tmp[j] // 0x10
+                # Нахожу значение по целому значению деления на 16 для столбца в sbox
                 sbox_col = tmp[j] % 0x10
+                # Вытаскиваю значение из таблица. 16 - так как hex
                 sbox_elem = sbox[16 * sbox_row + sbox_col]
+                # заменяю элемента в моем темповом столбце на элемент из таблица
                 tmp[j] = sbox_elem
 
             # and finally make XOR of 3 columns
+            # Для каждой строки выполняю xor трех элементов
             for row in range(4):
+                # Складываю в s xor трех колонок: предыдущей, темповой и rcon
+                # Так как rcon размером 10 символов на 4, то использую деление с вычитание единицы, аналогичное округлению, чтобы не выйти с индекмо за границу матрицы rcon
                 s = (key_schedule[row][col - 4]) ^ (tmp[row]) ^ (rcon[row][int(col / nk - 1)])
                 key_schedule[row].append(s)
 
         else:
             # just make XOR of 2 columns
+            # Для каждой строки выполняю xor 2 элементов
             for row in range(4):
+                # Складываю в s xor 2 колонок
                 s = key_schedule[row][col - 4] ^ key_schedule[row][col - 1]
                 key_schedule[row].append(s)
-
+    print("последняя операция расширения", key_schedule)
     return key_schedule
 
 
@@ -261,16 +285,20 @@ def add_round_key(state, key_schedule, round=0):
     """
 
     for col in range(nk):
-        # nb*round is a shift which indicates start of a part of the KeySchedule
+        # исп. nb*round сдвиг, который указывает на начало части KeySchedule
+        # для каждой Si выполняю xor между state[i][кол] и key_schedule[i][сдвиг + col]
         s0 = state[0][col] ^ key_schedule[0][nb * round + col]
         s1 = state[1][col] ^ key_schedule[1][nb * round + col]
         s2 = state[2][col] ^ key_schedule[2][nb * round + col]
         s3 = state[3][col] ^ key_schedule[3][nb * round + col]
 
+        # возвращаю значение в стайт для возврата из функции
         state[0][col] = s0
         state[1][col] = s1
         state[2][col] = s2
         state[3][col] = s3
+
+    print("state", state)
 
     return state
 

@@ -33,7 +33,7 @@ class Huffman:
         self.table = self.make_frequency_table(filename)
         self.codes_table = self.make_codes_table()
 
-    # создаем таблицу частот, где индекс в таблице = код символа ASCII
+    # создаем таблицу (массив) частот, где индекс в таблице = код символа ASCII
     def make_frequency_table(self, filename):
         table = [0] * 256
         with open(filename, "rb") as f:
@@ -47,22 +47,19 @@ class Huffman:
                         table[item] += 1
         return table
 
-        # строим таблицу кодов
-
+    # строим таблицу кодов
     def make_codes_table(self):
 
         # создаем список свободных узлов
         nodes = []
+        leafs = []  # Список "листьев" дерева
+        codes = []  # Таблица кодов
         for i in range(len(self.table)):
             if self.table[i] > 0:
                 nodes.append(Node(i, self.table[i]))
 
-        leafs = []  # Список "листьев" дерева
-        codes = []  # Таблица кодов
-
         # создаем дерево
         # создаем один узел, объединяя два узла с наименьшими весами, записываем в список
-
         if len(nodes) == 1:
             leafs.append(nodes[0])
             codes.append((nodes[0].value, "0"))
@@ -70,7 +67,7 @@ class Huffman:
 
         while len(nodes) > 1:
             nodes.sort(key=Node.sort_by_freq)  # сортируем узлы по весам
-            left, right = nodes.pop(0), nodes.pop(0)  # выбираем два узла с наименьшими весами
+            left, right = nodes.pop(0), nodes.pop(0)  # выбираем два узла с наименьшими весами и удаляю
             new_node = Node(None, left.freq + right.freq, None, left, right)  # создаем новый узел
             left.parent = new_node
             right.parent = new_node
@@ -99,6 +96,7 @@ class Huffman:
                 if node == parent.right:
                     code += "1"
                 node = parent
+            print("code", code)
             codes.append((leaf.value, code[::-1]))  # добавляем в таблицу кортеж (символ, код)
 
         return codes
@@ -163,6 +161,7 @@ class Huffman:
     def decompress(self, filename, compressed_filename, zeroes):
         res_filename = "decompressed_" + filename
         with open(compressed_filename, "rb") as f, open(res_filename, "wb") as res_f:
+            ## Как расшифровывается поток бит
             code_str = ""
             while True:
                 s = f.read(1024)
@@ -178,6 +177,7 @@ class Huffman:
 
             code = ""
             while len(code_str):
+                
                 code += code_str[0]
                 code_str = code_str[1:]
                 byte = self.find_byte(code)
@@ -187,6 +187,8 @@ class Huffman:
                     code = ""
 
         return res_filename
+
+      
 
 
 def main():
@@ -202,9 +204,13 @@ def main():
 
     print("Исходный файл: '{}' ({} байт)".format(filename, os.path.getsize(filename)))
 
+    # Создаю сущность huffman
     huf = Huffman(filename)
+
+    
     print(huf.codes_table, huf.table)
     codes_filename, res_filename, zeroes = huf.compress(filename)
+  
     print("Сжатый файл: '{}'  ({} байт)".format(res_filename,  os.path.getsize(res_filename)))
     print("Размер таблицы кодов: {} байт".format(sys.getsizeof(huf.codes_table)))
     print("Нулей дописано в последний байт:", zeroes)

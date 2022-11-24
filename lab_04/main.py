@@ -34,6 +34,10 @@ class RSA(object):
         return a
 
     def get_d(self, e, phi):
+        print ("inversion")
+        print(e, phi)
+        print(inverse(e, phi))
+        print(1/e)
         return inverse(e, phi)
 
     def get_e(self, phi):
